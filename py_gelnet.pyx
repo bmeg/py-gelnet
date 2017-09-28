@@ -5,6 +5,22 @@ from cpython cimport bool
 cimport numpy as np
 import numpy as np
 
+class GelnetRegression:
+    def __init__(self, l1, l2, max_iter=100):
+        self.l1 = l1
+        self.l2 = l2
+        self.max_iter = max_iter
+        self.coef_ = None
+        self.intercept_ = None
+
+    def fit(self, X, y, L):
+        model = gelnet(np.asfortranarray(X), y, self.l1, self.l2, P=L, max_iter=self.max_iter)
+        self.coef_ = model[0]
+        self.intercept_ = model[1]
+
+    def predict(self, X):
+        return X.dot(self.coef_) + self.intercept_
+
 def adj2lapl(A):
     if A.shape[0] != A.shape[1]:
         raise Exception("Need NxN matrix")
