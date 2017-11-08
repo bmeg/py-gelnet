@@ -6,15 +6,16 @@ cimport numpy as np
 import numpy as np
 
 class GelnetRegression:
-    def __init__(self, l1, l2, max_iter=100):
+    def __init__(self, l1, l2, L, max_iter=100):
         self.l1 = l1
         self.l2 = l2
+        self.L = L
         self.max_iter = max_iter
         self.coef_ = None
         self.intercept_ = None
 
-    def fit(self, X, y, L):
-        model = gelnet(np.asfortranarray(X), y, self.l1, self.l2, P=L, max_iter=self.max_iter)
+    def fit(self, X, y):
+        model = gelnet(np.asfortranarray(X), y, self.l1, self.l2, P=self.L, max_iter=self.max_iter)
         self.coef_ = model[0]
         self.intercept_ = model[1]
 
