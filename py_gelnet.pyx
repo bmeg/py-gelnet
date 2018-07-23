@@ -260,10 +260,10 @@ def gelnet_oneclass_obj(np.ndarray[double, ndim=1, mode="c"] w,
         np.ndarray[double, ndim=1, mode="c"] d,
         np.ndarray[double, ndim=2, mode="fortran"] P,
         np.ndarray[double, ndim=1, mode="c"] m):
-    s = X * np.matrix(w).T
+    s = np.matmul(X, w)
     LL = np.mean( s - np.log( 1 + np.exp(s) ) )
-    R1 = l1 * d.T * np.abs(w)
-    R2 = l2 * np.matrix(w-m) * P * np.matrix(w-m).T / 2
+    R1 = l1 * np.matmul(d.T, np.abs(w))
+    R2 = l2 * np.matmul((w-m).T, np.matmul(P, (w-m).T)) / 2
     return R1 + R2 - LL
 
 def gelnet_oneclass(np.ndarray[double, ndim=2, mode="fortran"] X,
@@ -288,25 +288,24 @@ def gelnet_oneclass(np.ndarray[double, ndim=2, mode="fortran"] X,
     fprev = gelnet_oneclass_obj(w=w, X=X, l1=l1, l2=l2, d=d, P=P, m=m)
     for iter in range(max_iter):
         ## Compute the current fit
-        s = X * np.matrix(w).T
+        s = np.matmul(X, w)
         pr = 1 / (1 + np.exp(-s))
 
         ## Compute the sample weights and active response
-        a = np.multiply(pr, 1-pr)
+        a = pr * 1-pr
         z = s + 1/pr
 
         ## Run coordinate descent for the resulting regression problem
-        w, b = gelnet_lin( X=X, y=z.A1, l1=l1, l2=l2,
-            a=a.A1, d=d, P=P, m=m, max_iter=iter*2,
+        w, b = gelnet_lin( X=X, y=z, l1=l1, l2=l2,
+            a=a, d=d, P=P, m=m, max_iter=iter*2,
             eps=eps, w_init=w, b_init=0, fix_bias=True, silent=True, nonneg=nonneg )
-
         f = gelnet_oneclass_obj(w=w, X=X, l1=l1, l2=l2, d=d, P=P, m=m)
-        if ( np.abs(f - fprev) / np.abs(fprev) < eps ).all():
+        if ( np.abs(f - fprev) / np.abs(fprev) < eps ):
             break
         else:
             fprev = f
 
-    return w
+    return w, 0.0
 
 """
 gelnet.oneclass <- function( X, l1, l2, d = rep(1,p), P = diag(p), m = rep(0,p),
