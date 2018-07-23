@@ -37,7 +37,7 @@ def adj2nlapl(A):
         raise Exception("Need NxN matrix")
     old = np.seterr(divide="ignore")
     A = A.astype(float)
-    np.fill_diagonal(A, np.zeros(A.shape[0]))    
+    np.fill_diagonal(A, np.zeros(A.shape[0]))
     d = np.apply_along_axis(sum, 0, A)
     d = np.sqrt(np.divide(1,d))
     d[np.isinf(d)]=0.0
@@ -50,35 +50,38 @@ def adj2nlapl(A):
 def gelnet(X, y, l1, l2, a=None, d=None, nFeats=None, P=None,
             max_iter=100, eps=1e-5, b_init=None,
             fix_bias=False, silent=False, balanced=False, nonneg=False ):
-    
+
     n = X.shape[0]
     p = X.shape[1]
-    
+
     w_init = np.zeros(p)
     m = np.zeros(p)
     if d is None:
         d = np.ones(p)
     if a is None:
         a = np.ones(n)
-    
-    f_gel = lambda L1: gelnet_lin( X=X, y=y, l1=L1, l2=l2, a=a, 
-        d=d, P=P, m=m, max_iter=max_iter, eps=eps, w_init=w_init, 
+
+    if P is None:
+      P = np.diag(np.ones(p)).copy(order="fortran")
+
+    f_gel = lambda L1: gelnet_lin( X=X, y=y, l1=L1, l2=l2, a=a,
+        d=d, P=P, m=m, max_iter=max_iter, eps=eps, w_init=w_init,
         b_init=b_init, fix_bias=fix_bias, silent=silent, nonneg=nonneg )
 
-    
+
     return f_gel(l1)
-    
+
     """
     w_init=rep(0,p),
     a=rep(1,n), d=rep(1,p), P=diag(p), m=rep(0,p)
     """
-    
+
 """
 
   {
     n <- nrow(X)
     p <- ncol(X)
-    
+
     ## Determine the problem type
     if( is.null(y) )
       {
@@ -108,7 +111,7 @@ def gelnet(X, y, l1, l2, a=None, d=None, nFeats=None, P=None,
     if( !is.null(nFeats) )
       {
         L1s <- L1.ceiling( X, y, a, d, P, m, l2, balanced )
-        return( gelnet.L1bin( f.gel, nFeats, L1s ) )        
+        return( gelnet.L1bin( f.gel, nFeats, L1s ) )
       }
     else
       { return( f.gel(l1) ) }
@@ -116,28 +119,28 @@ def gelnet(X, y, l1, l2, a=None, d=None, nFeats=None, P=None,
 """
 
 
-def gelnet_lin(np.ndarray[double, ndim=2, mode="fortran"] X, 
-        np.ndarray[double, ndim=1, mode="c"] y, 
-        double l1, double l2, 
+def gelnet_lin(np.ndarray[double, ndim=2, mode="fortran"] X,
+        np.ndarray[double, ndim=1, mode="c"] y,
+        double l1, double l2,
         np.ndarray[double, ndim=1, mode="c"] a=None,
-        np.ndarray[double, ndim=1, mode="c"] d=None, 
+        np.ndarray[double, ndim=1, mode="c"] d=None,
         np.ndarray[double, ndim=2, mode="fortran"] P=None,
         np.ndarray[double, ndim=1, mode="c"] m=None,
-        int max_iter = 100, double eps = 1e-5, 
-        np.ndarray[double, ndim=1, mode="c"] w_init = None, 
+        int max_iter = 100, double eps = 1e-5,
+        np.ndarray[double, ndim=1, mode="c"] w_init = None,
         b_init = None,
         fix_bias=False, bool silent=False, bool nonneg=False ):
-    
+
     """
     a = rep(1,n), d = rep(1,p), P = diag(p),
     m=rep(0,p)
     b.init = sum(a*y)/sum(a),
     w.init = rep(0,p),
     """
-    
+
     cdef int n = X.shape[0]
     cdef int p = X.shape[1]
-    
+
     if a is None:
         a = np.ones(n)
     if d is None:
@@ -153,35 +156,35 @@ def gelnet_lin(np.ndarray[double, ndim=2, mode="fortran"] X,
         b_init_double = np.sum(a*y) / np.sum(a)
     else:
         b_init_double = b_init
-    
+
     cdef int nonneg_int = 0
     if nonneg:
-        nonneg_int = 1    
+        nonneg_int = 1
     cdef int silent_int = 0
     if silent:
         silent_int = 1
     cdef int fix_bias_int = 0
     if fix_bias:
         fix_bias_int = 1
-    
+
     cdef np.ndarray[double, ndim=1, mode="c"] S = X.dot(w_init) + b_init_double
     cdef np.ndarray[double, ndim=1, mode="c"] Pw = P.dot(w_init - m)
     #cdef np.ndarray[double, ndim=2, mode="f"] X_trans = X.transpose().copy(order="C")
-    
-    gelnet.gelnet_lin_opt(<double *> X.data, <double *>y.data, 
-        <double *>a.data, <double *>d.data, <double *>P.data, <double *>m.data, &l1, &l2, 
-        <double *>S.data, 
+
+    gelnet.gelnet_lin_opt(<double *> X.data, <double *>y.data,
+        <double *>a.data, <double *>d.data, <double *>P.data, <double *>m.data, &l1, &l2,
+        <double *>S.data,
         <double *>Pw.data, &n, &p, &max_iter, &eps, &fix_bias_int, <double *>w_init.data,
         &b_init_double, &silent_int, &nonneg_int
     )
-    
-    return w_init, b_init_double
-    
 
-"""                    
+    return w_init, b_init_double
+
+
+"""
 gelnet.lin <- function( X, y, l1, l2, a = rep(1,n), d = rep(1,p), P = diag(p),
                        m=rep(0,p), max.iter = 100, eps = 1e-5, w.init = rep(0,p),
-                       b.init = sum(a*y)/sum(a), fix.bias=FALSE, silent=FALSE, nonneg=FALSE )        
+                       b.init = sum(a*y)/sum(a), fix.bias=FALSE, silent=FALSE, nonneg=FALSE )
 
   {
     n <- nrow(X)
