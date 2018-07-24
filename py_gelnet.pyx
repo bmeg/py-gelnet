@@ -286,13 +286,15 @@ def gelnet_oneclass(np.ndarray[double, ndim=2, mode="fortran"] X,
     w = w_init
 
     fprev = gelnet_oneclass_obj(w=w, X=X, l1=l1, l2=l2, d=d, P=P, m=m)
-    for iter in range(max_iter):
+    for iter in range(1, max_iter):
+        if not silent:
+            print("Iteration %s : f = %s" % (iter, fprev))
         ## Compute the current fit
         s = np.matmul(X, w)
         pr = 1 / (1 + np.exp(-s))
 
         ## Compute the sample weights and active response
-        a = pr * 1-pr
+        a = pr * (1-pr)
         z = s + 1/pr
 
         ## Run coordinate descent for the resulting regression problem
@@ -306,61 +308,3 @@ def gelnet_oneclass(np.ndarray[double, ndim=2, mode="fortran"] X,
             fprev = f
 
     return w, 0.0
-
-"""
-gelnet.oneclass <- function( X, l1, l2, d = rep(1,p), P = diag(p), m = rep(0,p),
-                            max.iter = 100, eps = 1e-5,
-                            w.init = rep(0,p), silent= FALSE, nonneg=FALSE )
-  {
-    n <- nrow(X)
-    p <- ncol(X)
-
-    ## Verify argument dimensionality
-    stopifnot( length(d) == p )
-    stopifnot( all( dim(P) == c(p,p) ) )
-    stopifnot( length(m) == p )
-    stopifnot( length(w.init) == p )
-    stopifnot( length(l1) == 1 )
-    stopifnot( length(l2) == 1 )
-
-    ## Verify name matching (if applicable)
-    if( is.null(colnames(X)) == FALSE && is.null(colnames(P)) == FALSE )
-      {
-        stopifnot( is.null( rownames(P) ) == FALSE )
-        stopifnot( all( colnames(X) == rownames(P) ) )
-        stopifnot( all( colnames(X) == colnames(P) ) )
-      }
-
-    ## Set the initial parameter estimates
-    w <- w.init
-
-    ## Run Newton's method
-    fprev <- gelnet.oneclass.obj( w, X, l1, l2, d, P, m )
-    for( iter in 1:max.iter )
-      {
-        if( silent == FALSE )
-          {
-            cat( "Iteration", iter, ": " )
-            cat( "f =", fprev, "\n" )
-          }
-
-        ## Compute the current fit
-        s <- X %*% w
-        pr <- 1 / ( 1 + exp(-s) )
-
-        ## Compute the sample weights and active response
-        a <- pr * (1-pr)
-        z <- s + 1/pr
-
-        ## Run coordinate descent for the resulting regression problem
-        mm <- gelnet.lin( X, z, l1, l2, a, d, P, m, iter*2, eps, w, 0, TRUE, TRUE, nonneg )
-        w <- mm$w
-
-        f <- gelnet.oneclass.obj( w, X, l1, l2, d, P, m )
-        if( abs(f - fprev) / abs(fprev) < eps ) break
-        else fprev <- f
-      }
-
-    list( w = w )
-  }
-  """
