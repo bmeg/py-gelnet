@@ -14,4 +14,4 @@ L = py_gelnet.adj2lapl(A)
 
 model = py_gelnet.gelnet( X, y, 0.1, 1, P = L )
 
-print model
+print(model)
